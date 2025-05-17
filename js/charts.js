@@ -1,4 +1,4 @@
-// js/charts.js - グラフの表示を担当
+// js/charts.js - グラフの表示を担当（修正版）
 
 // グラフ管理クラス
 class ChartsManager {
@@ -9,30 +9,42 @@ class ChartsManager {
         this.costChart = null;
         
         this.initYearSelector();
+        console.log('ChartsManager 初期化完了');
     }
     
     // 年選択の初期化
     initYearSelector() {
         const yearSelector = document.getElementById('stats-year-selector');
-        
-        yearSelector.addEventListener('change', () => {
-            this.updateAllCharts();
-        });
+        if (yearSelector) {
+            yearSelector.addEventListener('change', () => {
+                this.updateAllCharts();
+            });
+        }
     }
     
     // すべてのグラフを更新
     updateAllCharts() {
-        const year = document.getElementById('stats-year-selector').value;
+        console.log('すべてのグラフを更新中...');
+        const year = document.getElementById('stats-year-selector')?.value || '2025';
         
-        this.updateApplicationsChart(year);
-        this.updateSourceChart(year);
-        this.updateStoreChart(year);
-        this.updateCostChart(year);
+        try {
+            this.updateApplicationsChart(year);
+            this.updateSourceChart(year);
+            this.updateStoreChart(year);
+            this.updateCostChart(year);
+            console.log('グラフ更新完了');
+        } catch (error) {
+            console.error('グラフ更新エラー:', error);
+        }
     }
     
     // 応募数と採用数のグラフを更新
     updateApplicationsChart(year) {
         const chartContainer = document.getElementById('applications-chart');
+        if (!chartContainer) {
+            console.warn('applications-chart コンテナが見つかりません');
+            return;
+        }
         
         // Chart.jsインスタンスがあれば破棄
         if (this.applicationsChart) {
@@ -87,11 +99,17 @@ class ChartsManager {
                 }
             }
         });
+        
+        console.log('応募数グラフ更新完了');
     }
     
     // 応募経路別採用数のグラフを更新
     updateSourceChart(year) {
         const chartContainer = document.getElementById('source-chart');
+        if (!chartContainer) {
+            console.warn('source-chart コンテナが見つかりません');
+            return;
+        }
         
         // Chart.jsインスタンスがあれば破棄
         if (this.sourceChart) {
@@ -104,6 +122,7 @@ class ChartsManager {
         // データが0件の場合
         if (sourceStats.length === 0) {
             chartContainer.innerHTML = '<p class="placeholder-text">データがありません</p>';
+            console.log('応募経路データなし');
             return;
         }
         
@@ -120,7 +139,7 @@ class ChartsManager {
         chartContainer.appendChild(ctx);
         
         this.sourceChart = new Chart(ctx, {
-            type: 'horizontalBar',
+            type: 'bar', // 'horizontalBar'はChart.js v3で廃止されたため通常の'bar'に変更
             data: {
                 labels: labels,
                 datasets: [{
@@ -132,6 +151,7 @@ class ChartsManager {
                 }]
             },
             options: {
+                indexAxis: 'y', // 水平バーチャートにするためのオプション
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
@@ -144,11 +164,17 @@ class ChartsManager {
                 }
             }
         });
+        
+        console.log('応募経路グラフ更新完了');
     }
     
     // 店舗別採用数のグラフを更新
     updateStoreChart(year) {
         const chartContainer = document.getElementById('store-chart');
+        if (!chartContainer) {
+            console.warn('store-chart コンテナが見つかりません');
+            return;
+        }
         
         // Chart.jsインスタンスがあれば破棄
         if (this.storeChart) {
@@ -161,6 +187,7 @@ class ChartsManager {
         // データが0件の場合
         if (storeStats.length === 0) {
             chartContainer.innerHTML = '<p class="placeholder-text">データがありません</p>';
+            console.log('店舗データなし');
             return;
         }
         
@@ -177,7 +204,7 @@ class ChartsManager {
         chartContainer.appendChild(ctx);
         
         this.storeChart = new Chart(ctx, {
-            type: 'horizontalBar',
+            type: 'bar', // 'horizontalBar'はChart.js v3で廃止されたため通常の'bar'に変更
             data: {
                 labels: labels,
                 datasets: [{
@@ -189,6 +216,7 @@ class ChartsManager {
                 }]
             },
             options: {
+                indexAxis: 'y', // 水平バーチャートにするためのオプション
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
@@ -201,11 +229,17 @@ class ChartsManager {
                 }
             }
         });
+        
+        console.log('店舗グラフ更新完了');
     }
     
     // 月別採用コストのグラフを更新
     updateCostChart(year) {
         const chartContainer = document.getElementById('cost-chart');
+        if (!chartContainer) {
+            console.warn('cost-chart コンテナが見つかりません');
+            return;
+        }
         
         // Chart.jsインスタンスがあれば破棄
         if (this.costChart) {
@@ -254,20 +288,26 @@ class ChartsManager {
                         }
                     }
                 },
-                tooltips: {
-                    callbacks: {
-                        label: function(tooltipItem, data) {
-                            let label = data.datasets[tooltipItem.datasetIndex].label || '';
-                            if (label) {
-                                label += ': ';
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += '¥' + context.parsed.y.toLocaleString();
+                                }
+                                return label;
                             }
-                            label += '¥' + parseInt(tooltipItem.value).toLocaleString();
-                            return label;
                         }
                     }
                 }
             }
         });
+        
+        console.log('コストグラフ更新完了');
     }
 }
 
