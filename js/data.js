@@ -1,4 +1,4 @@
-// js/data.js - データの管理と処理を担当
+// js/data.js - データの管理と処理を担当（修正版）
 
 // 初期データ - 2025年5月のデータ
 const initialData = [
@@ -211,6 +211,7 @@ const initialData = [
 // データストレージクラス
 class DataManager {
     constructor() {
+        console.log('DataManager 初期化開始');
         this.currentData = {};
         this.archiveData = {};
         this.nextId = 1;
@@ -219,39 +220,63 @@ class DataManager {
         this.loadFromStorage();
         
         // データが空の場合は初期データをセット
-        if (Object.keys(this.currentData).length === 0) {
-            this.currentData = {
-                '2025-05': initialData
-            };
+        // 初期データをセットする方法を変更し、常に2025-05のデータが存在するようにする
+        const currentYearMonth = this.getCurrentYearMonth();
+        if (!this.currentData[currentYearMonth] || this.currentData[currentYearMonth].length === 0) {
+            console.log('初期データをセット');
+            if (!this.currentData[currentYearMonth]) {
+                this.currentData[currentYearMonth] = [];
+            }
+            
+            // 既存のデータをクリアして初期データを追加
+            this.currentData[currentYearMonth] = JSON.parse(JSON.stringify(initialData));
             this.saveToStorage();
         }
         
         // 次のIDを設定
         this.updateNextId();
+        console.log('DataManager 初期化完了', this.currentData);
     }
     
     // ローカルストレージからデータをロード
     loadFromStorage() {
-        const currentDataJson = localStorage.getItem('beautyRecruitCurrentData');
-        const archiveDataJson = localStorage.getItem('beautyRecruitArchiveData');
-        
-        if (currentDataJson) {
-            this.currentData = JSON.parse(currentDataJson);
-        } else {
+        try {
+            const currentDataJson = localStorage.getItem('beautyRecruitCurrentData');
+            const archiveDataJson = localStorage.getItem('beautyRecruitArchiveData');
+            
+            if (currentDataJson) {
+                this.currentData = JSON.parse(currentDataJson);
+                console.log('現在のデータを読み込みました', this.currentData);
+            } else {
+                this.currentData = {};
+                console.log('現在のデータがありません、新規作成します');
+            }
+            
+            if (archiveDataJson) {
+                this.archiveData = JSON.parse(archiveDataJson);
+                console.log('アーカイブデータを読み込みました');
+            } else {
+                this.archiveData = {};
+                console.log('アーカイブデータがありません、新規作成します');
+            }
+        } catch (error) {
+            console.error('ストレージからの読み込みエラー:', error);
+            // エラーが発生した場合は空のオブジェクトにリセット
             this.currentData = {};
-        }
-        
-        if (archiveDataJson) {
-            this.archiveData = JSON.parse(archiveDataJson);
-        } else {
             this.archiveData = {};
         }
     }
     
     // ローカルストレージにデータを保存
     saveToStorage() {
-        localStorage.setItem('beautyRecruitCurrentData', JSON.stringify(this.currentData));
-        localStorage.setItem('beautyRecruitArchiveData', JSON.stringify(this.archiveData));
+        try {
+            localStorage.setItem('beautyRecruitCurrentData', JSON.stringify(this.currentData));
+            localStorage.setItem('beautyRecruitArchiveData', JSON.stringify(this.archiveData));
+            console.log('データをストレージに保存しました');
+        } catch (error) {
+            console.error('ストレージへの保存エラー:', error);
+            alert('データの保存中にエラーが発生しました。ブラウザのストレージ容量が不足している可能性があります。');
+        }
     }
     
     // 次のIDを更新
@@ -277,6 +302,7 @@ class DataManager {
         });
         
         this.nextId = maxId + 1;
+        console.log('次のID:', this.nextId);
     }
     
     // 現在の月のデータを取得
@@ -300,7 +326,7 @@ class DataManager {
     
     // 現在の年月を取得（YYYY-MM形式）
     getCurrentYearMonth() {
-        return '2025-05'; // 現在は2025年5月
+        return '2025-05'; // 現在は2025年5月に固定
     }
     
     // 新しいアプリケーションを追加
@@ -330,9 +356,10 @@ class DataManager {
             return null;
         }
         
-        const index = this.currentData[yearMonth].findIndex(app => app.id === id);
+        const index = this.currentData[yearMonth].findIndex(app => app.id === parseInt(id));
         
         if (index === -1) {
+            console.error('更新対象のデータが見つかりません ID:', id);
             return null;
         }
         
@@ -355,9 +382,10 @@ class DataManager {
             return false;
         }
         
-        const index = this.currentData[yearMonth].findIndex(app => app.id === id);
+        const index = this.currentData[yearMonth].findIndex(app => app.id === parseInt(id));
         
         if (index === -1) {
+            console.error('削除対象のデータが見つかりません ID:', id);
             return false;
         }
         
@@ -370,6 +398,7 @@ class DataManager {
     // 新しい月のデータを作成
     createNewMonth(yearMonth) {
         if (this.currentData[yearMonth] || this.archiveData[yearMonth]) {
+            console.warn('既に存在する月です:', yearMonth);
             return false; // すでに存在する場合
         }
         
@@ -382,6 +411,7 @@ class DataManager {
     // 月のデータをアーカイブに移動
     archiveMonth(yearMonth) {
         if (!this.currentData[yearMonth]) {
+            console.warn('アーカイブする月のデータがありません:', yearMonth);
             return false;
         }
         
