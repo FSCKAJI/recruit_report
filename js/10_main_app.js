@@ -68,32 +68,45 @@ function renderMonthlyTrendChart() {
         ]
     };
 
-    const config = {
-        type: 'line',
-        data: chartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false, // コンテナに合わせて伸縮
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1 // 整数刻み
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: false, // HTML側でタイトル設定済み
-                    text: '月別応募者数・採用数推移'
+const config = {
+    type: 'line',
+    data: chartData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,
+                    padding: 10 // Y軸の目盛りラベルにパディングを追加
                 }
             }
+            // x軸の設定も必要であればここに追加
+            // x: {
+            //     ticks: {
+            //         // X軸のラベルに関する設定
+            //     }
+            // }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: false, // HTML側でタイトル設定済み
+                text: '月別応募者数・採用数推移'
+            }
+        },
+        layout: { // ← この layout オブジェクトを追加
+            padding: {
+                bottom: 10, // グラフ描画エリアの下部に10pxのパディング
+                left: 5,    // (任意) 左側にも少しパディングがあるとY軸ラベルが見やすいかも
+                right: 10   // (任意) 右側にもパディング
+            }
         }
-    };
-
+    }
+};
     const canvas = document.getElementById('monthlyTrendChart');
     if (!canvas) {
         console.error("Chart canvas not found");
