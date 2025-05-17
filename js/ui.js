@@ -1,11 +1,13 @@
-// js/ui.js - ユーザーインターフェースの操作を担当
+// js/ui.js - ユーザーインターフェースの操作を担当（修正版）
 
 // UIの初期化と操作を管理するクラス
 class UIManager {
     constructor() {
+        console.log('UIManager 初期化開始');
         this.initTabsNavigation();
         this.initModals();
         this.initEventListeners();
+        console.log('UIManager 初期化完了');
     }
     
     // タブの切り替え機能を初期化
@@ -15,6 +17,7 @@ class UIManager {
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const tabId = button.getAttribute('data-tab');
+                console.log('タブ切り替え:', tabId);
                 
                 // すべてのタブボタンから active クラスを削除
                 tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -35,7 +38,7 @@ class UIManager {
                 } else if (tabId === 'archive') {
                     archiveManager.initArchiveSelector();
                 } else if (tabId === 'statistics') {
-                    chartsManager.updateAllCharts();
+                    setTimeout(() => chartsManager.updateAllCharts(), 100);
                 }
             });
         });
@@ -61,27 +64,29 @@ class UIManager {
         });
         
         // キャンセルボタンのイベント
-        document.getElementById('cancel-application').addEventListener('click', () => {
+        document.getElementById('cancel-application')?.addEventListener('click', () => {
             this.closeModal(document.getElementById('application-modal'));
         });
     }
     
     // 各種イベントリスナーの初期化
     initEventListeners() {
+        console.log('イベントリスナーを初期化');
+        
         // 新規応募追加ボタン
-        document.getElementById('add-application-btn').addEventListener('click', () => {
+        document.getElementById('add-application-btn')?.addEventListener('click', () => {
             formManager.resetForm();
             formManager.setModalTitle('新規応募登録');
             this.openModal('application-modal');
         });
         
         // 新規月データ追加ボタン
-        document.getElementById('add-archive-month-btn').addEventListener('click', () => {
+        document.getElementById('add-archive-month-btn')?.addEventListener('click', () => {
             this.openModal('month-modal');
         });
         
         // 新規月データフォームの送信
-        document.getElementById('month-form').addEventListener('submit', e => {
+        document.getElementById('month-form')?.addEventListener('submit', e => {
             e.preventDefault();
             const yearMonth = document.getElementById('new-month').value;
             
@@ -144,7 +149,7 @@ class UIManager {
         });
         
         // データ出力ボタン
-        document.getElementById('export-current-btn').addEventListener('click', () => {
+        document.getElementById('export-current-btn')?.addEventListener('click', () => {
             this.exportCurrentData();
         });
     }
@@ -253,6 +258,8 @@ class UIManager {
         if (modal) {
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // スクロールを防止
+        } else {
+            console.error('モーダルが見つかりません:', modalId);
         }
     }
     
@@ -266,6 +273,8 @@ class UIManager {
     
     // 通知メッセージを表示
     showNotification(message, type = 'success') {
+        console.log('通知:', message, type);
+        
         // 既存の通知を削除
         const existingNotification = document.querySelector('.notification');
         if (existingNotification) {
@@ -353,29 +362,34 @@ class UIManager {
                 item.offerDate,
                 `"${item.result}"`,
                 item.startDate,
-                `"${item.notes.replace(/"/g, '""')}"`
+                `"${(item.notes || '').replace(/"/g, '""')}"`
             ];
             
             csvContent += row.join(',') + '\n';
         });
         
         // CSVファイルのダウンロード
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        
-        const currentYearMonth = dataManager.getCurrentYearMonth();
-        const fileName = `美容師採用管理_${currentYearMonth}.csv`;
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', fileName);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showNotification('データをCSVファイルに出力しました');
+        try {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            const currentYearMonth = dataManager.getCurrentYearMonth();
+            const fileName = `美容師採用管理_${currentYearMonth}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            this.showNotification('データをCSVファイルに出力しました');
+        } catch (error) {
+            console.error('CSV出力エラー:', error);
+            this.showNotification('データ出力中にエラーが発生しました', 'error');
+        }
     }
 }
 
