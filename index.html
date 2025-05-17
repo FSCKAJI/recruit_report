@@ -1,0 +1,1768 @@
+        <div class="dashboard-header">
+            <div class="stat-card">
+                <div class="stat-value" id="totalApplicants">12</div>
+                <div class="stat-label">応募者総数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value success" id="hiredCount">6</div>
+                <div class="stat-label">採用数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value warning" id="pendingCount">1</div>
+                <div class="stat-label">選考中</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value danger" id="rejectedCount">3</div>
+                <div class="stat-label">不採用</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCost">¥660,000</div>
+                <div class="stat-label">採用コスト合計</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="costPerHire">¥110,000</div>
+                <div class="stat-label">採用単価</div>
+            </div>
+        </div>
+        
+        <!-- グラフ表示エリア -->
+        <div class="chart-container">
+            <div class="chart-tabs">
+                <button class="chart-tab active" data-chart="applicants">応募者集計</button>
+                <button class="chart-tab" data-chart="source">応募経路分析</button>
+                <button class="chart-tab" data-chart="cost">コスト分析</button>
+            </div>
+            <div class="chart-content">
+                <!-- ここにグラフが表示されます -->
+                <div class="chart-placeholder" id="chart">
+                    <canvas id="applicantsChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div><!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>応募者管理ダッシュボード</title>
+    <!-- Chart.js CDNを先に読み込み -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        
+        .dashboard-header {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .chart-tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+        
+        .chart-tab {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s;
+        }
+        
+        .chart-tab:hover {
+            background: #ecf0f1;
+        }
+        
+        .chart-tab.active {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            background: white;
+        }
+        
+        .chart-content {
+            padding: 20px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chart-placeholder {
+            width: 100%;
+            height: 300px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value.success {
+            color: #27ae60;
+        }
+        
+        .stat-value.warning {
+            color: #f39c12;
+        }
+        
+        .stat-value.danger {
+            color: #e74c3c;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .month-tabs {
+            display: flex;
+            overflow-x: auto;
+            gap: 5px;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .month-tab {
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        
+        .month-tab:hover {
+            background: #e0e0e0;
+        }
+        
+        .month-tab.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .month-tab.add-month {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .filter-btn:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+        
+        .filter-btn.active, .filter-btn.selected {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .add-applicant-btn {
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .add-applicant-btn:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+        
+        .applicants-table {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .applicants-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .applicants-table thead {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+        
+        .applicants-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .applicants-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .applicants-table tbody tr {
+            transition: all 0.3s;
+        }
+        
+        .applicants-table tbody tr:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 100px;
+        }
+        
+        .status-badge.hired {
+            background: #e3fcef;
+            color: #27ae60;
+        }
+        
+        .status-badge.rejected {
+            background: #fceaea;
+            color: #e74c3c;
+        }
+        
+        .status-badge.pending {
+            background: #fcf3ea;
+            color: #f39c12;
+        }
+        
+        .status-badge.canceled {
+            background: #eaecfc;
+            color: #7f8c8d;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin-right: 5px;
+        }
+        
+        .action-btn.edit {
+            background: #3498db;
+            color: white;
+        }
+        
+        .action-btn.edit:hover {
+            background: #2980b9;
+        }
+        
+        .action-btn.delete {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .action-btn.delete:hover {
+            background: #c0392b;
+        }
+        
+        .source-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+        
+        .source-badge.jobmedley {
+            background: #d4f5ff;
+            color: #0288d1;
+        }
+        
+        .source-badge.rijob {
+            background: #fff0d4;
+            color: #ff9800;
+        }
+        
+        .source-badge.baitoru {
+            background: #ffe0d4;
+            color: #ff5722;
+        }
+        
+        .source-badge.jcity {
+            background: #e8d4ff;
+            color: #9c27b0;
+        }
+        
+        .source-badge.beauty {
+            background: #ffd4e5;
+            color: #e91e63;
+        }
+        
+        .source-badge.referral {
+            background: #d4ffdf;
+            color: #4caf50;
+        }
+        
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #7f8c8d;
+        }
+        
+        .empty-state-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+        }
+        
+        .empty-state-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .pagination-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .pagination-btn:hover:not(.active) {
+            border-color: #3498db;
+        }
+        
+        .cost-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            background: #f8f9fa;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 600px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            background: white;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn.cancel {
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+        
+        .modal-btn.save {
+            background: #3498db;
+            color: white;
+        }
+        
+        .modal-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+            
+            .applicants-table {
+                overflow-x: auto;
+            }
+            
+            .applicants-table table {
+                min-width: 1000px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>応募者管理ダッシュボード</h1>
+        
+        <!-- 月選択タブ -->
+        <div class="month-tabs">
+            <div class="month-tab active" data-month="2025-05">2025年5月</div>
+            <div class="month-tab" data-month="2025-04">2025年4月</div>
+            <div class="month-tab" data-month="2025-03">2025年3月</div>
+            <div class="month-tab add-month" onclick="showAddMonthModal()">+ 月を追加</div>
+        </div>
+        
+        <div class="dashboard-header">
+            <div class="stat-card">
+                <div class="stat-value" id="totalApplicants">12</div>
+                <div class="stat-label">応募者総数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value success" id="hiredCount">6</div>
+                <div class="stat-label">採用数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value warning" id="pendingCount">1</div>
+                <div class="stat-label">選考中</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value danger" id="rejectedCount">3</div>
+                <div class="stat-label">不採用</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCost">¥1,811,000</div>
+                <div class="stat-label">採用コスト合計</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="costPerHire">¥220,000</div>
+                <div class="stat-label">採用単価</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="名前、店舗、職種などで検索...">
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">ステータス:</span>
+                <button class="filter-btn active" data-filter="all">すべて</button>
+                <button class="filter-btn" data-filter="採用">採用</button>
+                <button class="filter-btn" data-filter="選考中">選考中</button>
+                <button class="filter-btn" data-filter="不採用">不採用</button>
+                <button class="filter-btn" data-filter="辞退">辞退</button>
+            </div>
+            <button class="add-applicant-btn" onclick="showAddModal()">
+                <span>+</span> 応募者を追加
+            </button>
+        </div>
+        
+        <div class="applicants-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>応募日</th>
+                        <th>店舗名</th>
+                        <th>氏名</th>
+                        <th>年齢/性別</th>
+                        <th>職種</th>
+                        <th>雇用形態</th>
+                        <th>応募経路</th>
+                        <th>成果報酬</th>
+                        <th>面接日</th>
+                        <th>ステータス</th>
+                        <th>入社日</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="applicantsTableBody">
+                    <!-- ここにデータが動的に入ります -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination" id="pagination">
+            <!-- ページネーションが動的に入ります -->
+        </div>
+    </div>
+    
+    <!-- 応募者追加/編集モーダル -->
+    <div class="modal" id="applicantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">応募者を追加</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <!-- クイック入力ボタン -->
+            <div id="quickInputButtons" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                <div style="width: 100%; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">よく使う店舗:</div>
+                <button class="filter-btn" onclick="setStore('北島')">北島</button>
+                <button class="filter-btn" onclick="setStore('東原')">東原</button>
+                <button class="filter-btn" onclick="setStore('富久')">富久</button>
+                <button class="filter-btn" onclick="setStore('宇多津')">宇多津</button>
+                <button class="filter-btn" onclick="setStore('国分')">国分</button>
+                
+                <div style="width: 100%; margin: 10px 0 5px; font-weight: 600; color: #2c3e50;">よく使う応募経路:</div>
+                <button class="filter-btn" onclick="setSource('リジョブ', '¥231,000')">リジョブ</button>
+                <button class="filter-btn" onclick="setSource('ジョブメドレー', '¥220,000')">ジョブメドレー</button>
+                <button class="filter-btn" onclick="setSource('バイトルPRO', '¥150,000')">バイトルPRO</button>
+                <button class="filter-btn" onclick="setSource('自社 （ジェイシティ）', '0円')">自社</button>
+                <button class="filter-btn" onclick="setSource('紹介', '0円')">紹介</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">応募日</label>
+                <input type="date" class="form-input" id="applicationDate">
+            </div>
+            <div class="form-group">
+                <label class="form-label">店舗名</label>
+                <input type="text" class="form-input" id="storeName">
+            </div>
+            <div class="form-group">
+                <label class="form-label">氏名</label>
+                <input type="text" class="form-input" id="applicantName">
+            </div>
+            <div class="form-group">
+                <label class="form-label">性別</label>
+                <select class="form-select" id="gender">
+                    <option value="男性">男性</option>
+                    <option value="女性">女性</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">年齢</label>
+                <input type="number" class="form-input" id="age">
+            </div>
+            <div class="form-group">
+                <label class="form-label">職種</label>
+                <input type="text" class="form-input" id="jobTitle" value="スタイリスト">
+            </div>
+            <div class="form-group">
+                <label class="form-label">雇用形態</label>
+                <select class="form-select" id="employmentType">
+                    <option value="正社員">正社員</option>
+                    <option value="パート・アルバイト">パート・アルバイト</option>
+                    <option value="契約社員">契約社員</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">応募経路</label>
+                <select class="form-select" id="applicationSource">
+                    <option value="リジョブ">リジョブ</option>
+                    <option value="ジョブメドレー">ジョブメドレー</option>
+                    <option value="バイトルPRO">バイトルPRO</option>
+                    <option value="ビューティーミライ">ビューティーミライ</option>
+                    <option value="自社 （ジェイシティ）">自社 （ジェイシティ）</option>
+                    <option value="紹介">紹介</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">成果報酬</label>
+                <input type="text" class="form-input" id="referralFee" placeholder="例: ¥220,000">
+            </div>
+            <div class="form-group">
+                <label class="form-label">面接日</label>
+                <input type="date" class="form-input" id="interviewDate">
+            </div>
+            <div class="form-group">
+                <label class="form-label">ステータス</label>
+                <select class="form-select" id="status">
+                    <option value="選考中">選考中</option>
+                    <option value="採用">採用</option>
+                    <option value="不採用">不採用</option>
+                    <option value="辞退">辞退</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">入社日</label>
+                <input type="date" class="form-input" id="startDate">
+            </div>
+            <div class="form-group">
+                <label class="form-label">備考</label>
+                <textarea class="form-input" id="notes" rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" onclick="closeModal()">キャンセル</button>
+                <button class="modal-btn save" onclick="saveApplicant()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 月追加モーダル -->
+    <div class="modal" id="addMonthModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">データ入力月を追加</h2>
+                <button class="close-modal" onclick="closeAddMonthModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">年月を選択</label>
+                <input type="month" class="form-input" id="newMonthInput">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" onclick="closeAddMonthModal()">キャンセル</button>
+                <button class="modal-btn save" onclick="addNewMonth()">追加</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chart.jsはヘッダに移動しました -->
+    <script>
+        // サンプルデータ
+        // サンプルデータ
+        const applicantsData = [
+            {
+                id: 1,
+                applicationDate: '2024-05-01',
+                storeName: '北島（ＯＰＥＮ後 徳島へ）',
+                name: '山下 那奈',
+                gender: '女性',
+                age: 28,
+                jobTitle: 'スタイリスト',
+                employmentType: '正社員',
+                applicationSource: '紹介',
+                referralFee: '0円',
+                interviewDate: '2024-05-03',
+                status: '採用',
+                startDate: '2024-06-01',
+                notes: ''
+            },
+            {
+                id: 2,
+                applicationDate: '2024-05-01',
+                storeName: 'カットオン長田',
+                name: '阿慶田 真希',
+                gender: '女性',
+                age: 54,
+                jobTitle: 'スタイリスト',
+                employmentType: '正社員',
+                applicationSource: 'リジョブ',
+                referralFee: '¥264,000',
+                interviewDate: '2024-05-19',
+                status: '辞退',
+                startDate: '',
+                notes: '現地辞退'
+            },
+            {
+                id: 3,
+                applicationDate: '2024-05-01',
+                storeName: '宇多津',
+                name: '小川 眞由美',
+                gender: '女性',
+                age: 61,
+                jobTitle: 'スタイリスト',
+                employmentType: 'パート・アルバイト',
+                applicationSource: 'バイトルPRO',
+                referralFee: '¥150,000',
+                interviewDate: '2024-05-12',
+                status: '不採用',
+                startDate: '',
+                notes: 'ブランクが長すぎるため・採用費がかかるため不採用'
+            },
+            {
+                id: 4,
+                applicationDate: '2024-05-01',
+                storeName: '東原',
+                name: '山本 鈴奈',
+                gender: '女性',
+                age: null,
+                jobTitle: 'スタイリスト',
+                employmentType: 'パート・アルバイト',
+                applicationSource: 'ジョブメドレー',
+                referralFee: '¥220,000',
+                interviewDate: '2024-05-05',
+                status: '採用',
+                startDate: '2024-05-08',
+                notes: ''
+            },
+            {
+                id: 5,
+                applicationDate: '2024-05-08',
+                storeName: '富久',
+                name: '中本 彩香',
+                gender: '女性',
+                age: 45,
+                jobTitle: 'スタイリスト',
+                employmentType: 'パート・アルバイト',
+                applicationSource: '自社 （ジェイシティ）',
+                referralFee: '0円',
+                interviewDate: '2024-05-12',
+                status: '採用',
+                startDate: '2024-07-01',
+                notes: ''
+            },
+            {
+                id: 6,
+                applicationDate: '2024-05-02',
+                storeName: '国分',
+                name: '吉田 理恵子',
+                gender: '女性',
+                age: 58,
+                jobTitle: 'スタイリスト',
+                employmentType: 'パート・アルバイト',
+                applicationSource: 'ビューティーミライ',
+                referralFee: '¥275,000',
+                interviewDate: '2024-05-09',
+                status: '辞退',
+                startDate: '',
+                notes: ''
+            },
+            {
+                id: 7,
+                applicationDate: '2024-05-03',
+                storeName: '西阿知',
+                name: '岡本 祐八',
+                gender: '男性',
+                age: 45,
+                jobTitle: 'スタイリスト',
+                employmentType: '正社員',
+                applicationSource: 'リジョブ',
+                referralFee: '¥231,000',
+                interviewDate: '2024-05-06',
+                status: '辞退',
+                startDate: '',
+                notes: ''
+            },
+            {
+                id: 8,
+                applicationDate: '2024-05-06',
+                storeName: 'LALA',
+                name: '小林 直美',
+                gender: '女性',
+                age: 56,
+                jobTitle: 'スタイリスト',
+                employmentType: 'パート・アルバイト',
+                applicationSource: 'ジョブメドレー',
+                referralFee: '¥220,000',
+                interviewDate: '2024-05-08',
+                status: '不採用',
+                startDate: '',
+                notes: ''
+            },
+            {
+                id: 9,
+                applicationDate: '2024-05-08',
+                storeName: '神戸北',
+                name: '西田 紗由理',
+                gender: '女性',
+                age: 44,
+                jobTitle: 'スタイリスト',
+                employmentType: '',
+                applicationSource: 'リジョブ',
+                referralFee: '¥231,000',
+                interviewDate: '2024-05-10',
+                status: '辞退',
+                startDate: '',
+                notes: ''
+            },
+            {
+                id: 10,
+                applicationDate: '2024-05-12',
+                storeName: '今治',
+                name: '矢野 元美',
+                gender: '女性',
+                age: 57,
+                jobTitle: 'スタイリスト',
+                employmentType: '正社員',
+                applicationSource: '自社 （ジェイシティ）',
+                referralFee: '0円',
+                interviewDate: '2024-05-15',
+                status: '採用',
+                startDate: '2024-05-20',
+                notes: ''
+            },
+            {
+                id: 11,
+                applicationDate: '2024-05-14',
+                storeName: '寝屋川',
+                name: '上門 明子',
+                gender: '女性',
+                age: 54,
+                jobTitle: '',
+                employmentType: 'パート・アルバイト',
+                applicationSource: 'ジョブメドレー',
+                referralFee: '¥220,000',
+                interviewDate: '2024-05-15',
+                status: '不採用',
+                startDate: '',
+                notes: ''
+            },
+            {
+                id: 12,
+                applicationDate: '2024-05-16',
+                storeName: '二条',
+                name: '長田 容子',
+                gender: '女性',
+                age: 49,
+                jobTitle: 'スタイリスト',
+                employmentType: '正社員',
+                applicationSource: 'バイトルPRO',
+                referralFee: '¥220,000',
+                interviewDate: '2024-05-22',
+                status: '選考中',
+                startDate: '',
+                notes: ''
+            }
+        ];
+        
+        // 現在編集中の応募者ID
+        let currentEditId = null;
+        
+        // 月ごとのデータ構造
+        const monthlyData = {
+            '2025-05': applicantsData,
+            '2025-04': [],
+            '2025-03': []
+        };
+        
+        // 現在選択されている月
+        let currentMonth = '2025-05';
+        
+        // 現在のフィルター
+        let currentFilter = 'all';
+        
+        // 現在の検索テキスト
+        let currentSearch = '';
+        
+        // ソースに対応するバッジクラス
+        const sourceBadgeClasses = {
+            'リジョブ': 'rijob',
+            'ジョブメドレー': 'jobmedley',
+            'バイトルPRO': 'baitoru',
+            '自社 （ジェイシティ）': 'jcity',
+            'ビューティーミライ': 'beauty',
+            '紹介': 'referral'
+        };
+        
+        // ステータスに対応するバッジクラス
+        const statusBadgeClasses = {
+            '採用': 'hired',
+            '不採用': 'rejected',
+            '選考中': 'pending',
+            '辞退': 'canceled'
+        };
+        
+        // 現在のソート順
+        let currentSort = 'asc'; // デフォルトは古い順（昇順）
+        
+        // 応募者一覧を表示
+        function renderApplicants() {
+            const tableBody = document.getElementById('applicantsTableBody');
+            tableBody.innerHTML = '';
+            
+            // 現在の月のデータを取得
+            const currentMonthData = monthlyData[currentMonth] || [];
+            
+            // フィルタリングと検索
+            const filteredData = currentMonthData.filter(applicant => {
+                // ステータスフィルター
+                const statusMatch = currentFilter === 'all' || applicant.status === currentFilter;
+                
+                // 検索フィルター
+                const searchMatch = !currentSearch || 
+                    applicant.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
+                    applicant.storeName.toLowerCase().includes(currentSearch.toLowerCase()) ||
+                    (applicant.jobTitle && applicant.jobTitle.toLowerCase().includes(currentSearch.toLowerCase())) ||
+                    (applicant.employmentType && applicant.employmentType.toLowerCase().includes(currentSearch.toLowerCase()));
+                
+                return statusMatch && searchMatch;
+            });
+            
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="12">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🔍</div>
+                                <div class="empty-state-text">該当する応募者が見つかりません</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // データをソート
+            const sortedData = [...filteredData].sort((a, b) => {
+                const dateA = new Date(a.applicationDate);
+                const dateB = new Date(b.applicationDate);
+                
+                if (currentSort === 'asc') {
+                    return dateA - dateB; // 古い順（昇順）
+                } else {
+                    return dateB - dateA; // 新しい順（降順）
+                }
+            });
+            
+            // 表に応募者を表示
+            sortedData.forEach(applicant => {
+                const row = document.createElement('tr');
+                
+                // 応募日
+                const appDate = new Date(applicant.applicationDate);
+                const formattedAppDate = `${appDate.getMonth() + 1}/${appDate.getDate()}`;
+                
+                // 面接日
+                let formattedInterviewDate = '';
+                if (applicant.interviewDate) {
+                    const interviewDate = new Date(applicant.interviewDate);
+                    formattedInterviewDate = `${interviewDate.getMonth() + 1}/${interviewDate.getDate()}`;
+                }
+                
+                // 入社日
+                let formattedStartDate = '';
+                if (applicant.startDate) {
+                    const startDate = new Date(applicant.startDate);
+                    formattedStartDate = `${startDate.getMonth() + 1}/${startDate.getDate()}`;
+                }
+                
+                // 応募経路バッジクラス
+                const sourceBadgeClass = sourceBadgeClasses[applicant.applicationSource] || '';
+                
+                // ステータスバッジクラス
+                const statusBadgeClass = statusBadgeClasses[applicant.status] || '';
+                
+                row.innerHTML = `
+                    <td>${formattedAppDate}</td>
+                    <td>${applicant.storeName}</td>
+                    <td>${applicant.name}</td>
+                    <td>${applicant.age ? applicant.age : '-'}/${applicant.gender}</td>
+                    <td>${applicant.jobTitle || '-'}</td>
+                    <td>${applicant.employmentType || '-'}</td>
+                    <td><span class="source-badge ${sourceBadgeClass}">${applicant.applicationSource}</span></td>
+                    <td><span class="cost-badge">${applicant.referralFee}</span></td>
+                    <td>${formattedInterviewDate}</td>
+                    <td><span class="status-badge ${statusBadgeClass}">${applicant.status}</span></td>
+                    <td>${formattedStartDate}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="editApplicant(${applicant.id})">編集</button>
+                        <button class="action-btn delete" onclick="deleteApplicant(${applicant.id})">削除</button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            updateStats();
+        }
+        
+        // 統計を更新
+        function updateStats() {
+            // 現在の月のデータを取得
+            const currentMonthData = monthlyData[currentMonth] || [];
+            
+            const totalApplicants = currentMonthData.length;
+            const hiredApplicants = currentMonthData.filter(a => a.status === '採用');
+            const hiredCount = hiredApplicants.length;
+            const pendingCount = currentMonthData.filter(a => a.status === '選考中').length;
+            const rejectedCount = currentMonthData.filter(a => a.status === '不採用').length;
+            
+            // 採用コスト集計 - 採用フラグが立っている人のみ
+            let totalCost = 0;
+            const costRegex = /¥([\d,]+)/;
+            
+            hiredApplicants.forEach(applicant => {
+                if (applicant.referralFee) {
+                    const match = applicant.referralFee.match(costRegex);
+                    if (match) {
+                        const costStr = match[1].replace(/,/g, '');
+                        totalCost += parseInt(costStr, 10);
+                    }
+                }
+            });
+            
+            // 採用単価計算
+            const costPerHire = hiredCount > 0 ? totalCost / hiredCount : 0;
+            
+            // カンマ区切りのフォーマット
+            const formattedCost = new Intl.NumberFormat('ja-JP', {
+                style: 'currency',
+                currency: 'JPY',
+                maximumFractionDigits: 0
+            }).format(totalCost);
+            
+            const formattedCostPerHire = new Intl.NumberFormat('ja-JP', {
+                style: 'currency',
+                currency: 'JPY',
+                maximumFractionDigits: 0
+            }).format(costPerHire);
+            
+            document.getElementById('totalApplicants').textContent = totalApplicants;
+            document.getElementById('hiredCount').textContent = hiredCount;
+            document.getElementById('pendingCount').textContent = pendingCount;
+            document.getElementById('rejectedCount').textContent = rejectedCount;
+            document.getElementById('totalCost').textContent = formattedCost;
+            document.getElementById('costPerHire').textContent = formattedCostPerHire;
+        }
+        
+        // 応募者追加モーダルを表示
+        function showAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = '応募者を追加';
+            
+            // 今日の日付をデフォルトで設定
+            const today = new Date().toISOString().substr(0, 10);
+            
+            // 一般的なデフォルト値を設定して入力を簡略化
+            document.getElementById('applicationDate').value = today;
+            document.getElementById('storeName').value = '';
+            document.getElementById('applicantName').value = '';
+            document.getElementById('gender').value = '女性';
+            document.getElementById('age').value = '';
+            document.getElementById('jobTitle').value = 'スタイリスト';
+            document.getElementById('employmentType').value = 'パート・アルバイト';
+            document.getElementById('applicationSource').value = 'リジョブ';
+            document.getElementById('referralFee').value = '¥220,000';
+            
+            // 面接日は7日後をデフォルト設定
+            const interviewDate = new Date();
+            interviewDate.setDate(interviewDate.getDate() + 7);
+            document.getElementById('interviewDate').value = interviewDate.toISOString().substr(0, 10);
+            
+            document.getElementById('status').value = '選考中';
+            document.getElementById('startDate').value = '';
+            document.getElementById('notes').value = '';
+            
+            // クイック入力ボタンを追加
+            const quickButtons = document.getElementById('quickInputButtons');
+            quickButtons.style.display = 'flex';
+            
+            // モーダルを表示
+            document.getElementById('applicantModal').classList.add('show');
+        }
+        
+        // 応募者編集モーダルを表示
+        function editApplicant(id) {
+            currentEditId = id;
+            document.getElementById('modalTitle').textContent = '応募者を編集';
+            
+            // 応募者データを取得
+            const applicant = applicantsData.find(a => a.id === id);
+            if (!applicant) return;
+            
+            // フォームに値を設定
+            document.getElementById('applicationDate').value = applicant.applicationDate;
+            document.getElementById('storeName').value = applicant.storeName;
+            document.getElementById('applicantName').value = applicant.name;
+            document.getElementById('gender').value = applicant.gender;
+            document.getElementById('age').value = applicant.age || '';
+            document.getElementById('jobTitle').value = applicant.jobTitle || '';
+            document.getElementById('employmentType').value = applicant.employmentType || '';
+            document.getElementById('applicationSource').value = applicant.applicationSource;
+            document.getElementById('referralFee').value = applicant.referralFee;
+            document.getElementById('interviewDate').value = applicant.interviewDate || '';
+            document.getElementById('status').value = applicant.status;
+            document.getElementById('startDate').value = applicant.startDate || '';
+            document.getElementById('notes').value = applicant.notes || '';
+            
+            // クイック入力ボタンを非表示
+            const quickButtons = document.getElementById('quickInputButtons');
+            quickButtons.style.display = 'none';
+            
+            // モーダルを表示
+            document.getElementById('applicantModal').classList.add('show');
+        }
+        
+        // 店舗名をクイック設定
+        function setStore(storeName) {
+            document.getElementById('storeName').value = storeName;
+            
+            // ボタンのスタイルを更新
+            const storeButtons = document.querySelectorAll('#quickInputButtons button');
+            storeButtons.forEach(btn => {
+                if (btn.innerText === storeName) {
+                    btn.classList.add('selected');
+                } else if (btn.innerText !== 'リジョブ' && btn.innerText !== 'ジョブメドレー' && 
+                           btn.innerText !== 'バイトルPRO' && btn.innerText !== '自社' && 
+                           btn.innerText !== '紹介') {
+                    btn.classList.remove('selected');
+                }
+            });
+        }
+        
+        // 応募経路とそれに対応する成果報酬をクイック設定
+        function setSource(source, fee) {
+            document.getElementById('applicationSource').value = source;
+            document.getElementById('referralFee').value = fee;
+            
+            // ボタンのスタイルを更新
+            const sourceButtons = document.querySelectorAll('#quickInputButtons button');
+            sourceButtons.forEach(btn => {
+                if (btn.innerText === source || (btn.innerText === '自社' && source === '自社 （ジェイシティ）')) {
+                    btn.classList.add('selected');
+                } else if (btn.innerText !== '北島' && btn.innerText !== '東原' && 
+                           btn.innerText !== '富久' && btn.innerText !== '宇多津' && 
+                           btn.innerText !== '国分') {
+                    btn.classList.remove('selected');
+                }
+            });
+        }
+        
+        // モーダルを閉じる
+        function closeModal() {
+            document.getElementById('applicantModal').classList.remove('show');
+        }
+        
+        // 応募者を保存（追加または更新）
+        function saveApplicant() {
+            const applicationDate = document.getElementById('applicationDate').value;
+            const storeName = document.getElementById('storeName').value;
+            const name = document.getElementById('applicantName').value;
+            const gender = document.getElementById('gender').value;
+            const age = document.getElementById('age').value ? parseInt(document.getElementById('age').value) : null;
+            const jobTitle = document.getElementById('jobTitle').value;
+            const employmentType = document.getElementById('employmentType').value;
+            const applicationSource = document.getElementById('applicationSource').value;
+            const referralFee = document.getElementById('referralFee').value;
+            const interviewDate = document.getElementById('interviewDate').value;
+            const status = document.getElementById('status').value;
+            const startDate = document.getElementById('startDate').value;
+            const notes = document.getElementById('notes').value;
+            
+            // 必須フィールドの検証
+            if (!applicationDate || !storeName || !name) {
+                alert('応募日、店舗名、氏名は必須です');
+                return;
+            }
+            
+            // 応募日から月を判断
+            const appDateObj = new Date(applicationDate);
+            const appMonth = `${appDateObj.getFullYear()}-${String(appDateObj.getMonth() + 1).padStart(2, '0')}`;
+            
+            // その月のデータがなければ作成
+            if (!monthlyData[appMonth]) {
+                monthlyData[appMonth] = [];
+                
+                // 月タブを追加（後で実装予定）
+                // addMonthTab(appMonth);
+            }
+            
+            if (currentEditId === null) {
+                // 新規追加
+                const newId = getNextId();
+                
+                const newApplicant = {
+                    id: newId,
+                    applicationDate,
+                    storeName,
+                    name,
+                    gender,
+                    age,
+                    jobTitle,
+                    employmentType,
+                    applicationSource,
+                    referralFee,
+                    interviewDate,
+                    status,
+                    startDate,
+                    notes
+                };
+                
+                // 適切な月のデータに追加
+                monthlyData[appMonth].push(newApplicant);
+                
+            } else {
+                // 更新
+                const index = monthlyData[currentMonth].findIndex(a => a.id === currentEditId);
+                if (index !== -1) {
+                    monthlyData[currentMonth][index] = {
+                        ...monthlyData[currentMonth][index],
+                        applicationDate,
+                        storeName,
+                        name,
+                        gender,
+                        age,
+                        jobTitle,
+                        employmentType,
+                        applicationSource,
+                        referralFee,
+                        interviewDate,
+                        status,
+                        startDate,
+                        notes
+                    };
+                }
+            }
+            
+            // モーダルを閉じて表を再描画
+            closeModal();
+            renderApplicants();
+            updateStats();
+            
+            // 成功メッセージ
+            const notification = document.createElement('div');
+            notification.textContent = currentEditId === null ? '応募者を追加しました' : '応募者情報を更新しました';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #27ae60;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                z-index: 1000;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+        
+        // 次のIDを取得
+        function getNextId() {
+            let maxId = 0;
+            
+            // すべての月のデータを検索
+            Object.values(monthlyData).forEach(monthData => {
+                monthData.forEach(applicant => {
+                    if (applicant.id > maxId) {
+                        maxId = applicant.id;
+                    }
+                });
+            });
+            
+            return maxId + 1;
+        }
+        
+        // 応募者を削除
+        function deleteApplicant(id) {
+            if (!confirm('本当にこの応募者を削除しますか？')) return;
+            
+            const index = monthlyData[currentMonth].findIndex(a => a.id === id);
+            if (index !== -1) {
+                monthlyData[currentMonth].splice(index, 1);
+                renderApplicants();
+                updateStats();
+                
+                // 成功メッセージ
+                const notification = document.createElement('div');
+                notification.textContent = '応募者を削除しました';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #e74c3c;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 5px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    z-index: 1000;
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+        }
+        
+        // 並べ替え機能
+        function sortApplicants(order) {
+            currentSort = order;
+            
+            // ボタンのアクティブ状態を更新
+            document.getElementById('sortAsc').classList.toggle('active', order === 'asc');
+            document.getElementById('sortDesc').classList.toggle('active', order === 'desc');
+            
+            renderApplicants();
+        }
+        
+        // 月を切り替える
+        function switchMonth(month) {
+            currentMonth = month;
+            
+            // タブのアクティブ状態を更新
+            document.querySelectorAll('.month-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('data-month') === month);
+            });
+            
+            // 応募者一覧と統計を更新
+            renderApplicants();
+            updateStats();
+        }
+        
+        // 月追加モーダルを表示
+        function showAddMonthModal() {
+            document.getElementById('addMonthModal').classList.add('show');
+            
+            // 現在の年月をデフォルト値に
+            const now = new Date();
+            const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('newMonthInput').value = yearMonth;
+        }
+        
+        // 月追加モーダルを閉じる
+        function closeAddMonthModal() {
+            document.getElementById('addMonthModal').classList.remove('show');
+        }
+        
+        // 新しい月を追加
+        function addNewMonth() {
+            const newMonth = document.getElementById('newMonthInput').value;
+            if (!newMonth) {
+                alert('年月を選択してください');
+                return;
+            }
+            
+            // 既存の月でないか確認
+            if (monthlyData[newMonth]) {
+                alert('この月のデータは既に存在します');
+                return;
+            }
+            
+            // 新しい月のデータを初期化
+            monthlyData[newMonth] = [];
+            
+            // 月タブを追加
+            addMonthTab(newMonth);
+            
+            // 月タブを追加してモーダルを閉じる
+            closeAddMonthModal();
+            
+            // 新しい月に切り替え
+            switchMonth(newMonth);
+        }
+        
+        // 月タブを追加
+        function addMonthTab(month) {
+            const tabsContainer = document.querySelector('.month-tabs');
+            const addButton = document.querySelector('.month-tab.add-month');
+            
+            // 年月のフォーマット（例：2025-05 → 2025年5月）
+            const [year, monthNum] = month.split('-');
+            const formattedMonth = `${year}年${parseInt(monthNum)}月`;
+            
+            // 新しいタブ要素
+            const newTab = document.createElement('div');
+            newTab.className = 'month-tab';
+            newTab.setAttribute('data-month', month);
+            newTab.textContent = formattedMonth;
+            
+            // タブがクリックされたときのイベント
+            newTab.addEventListener('click', () => {
+                switchMonth(month);
+            });
+            
+            // 「+月を追加」ボタンの前に挿入
+            tabsContainer.insertBefore(newTab, addButton);
+        }
+        
+        // フィルターボタンのイベントリスナーを設定
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                currentFilter = btn.getAttribute('data-filter');
+                renderApplicants();
+            });
+        });
+        
+        // 検索ボックスのイベントリスナーを設定
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            renderApplicants();
+        });
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 月タブのイベントリスナーを設定
+            document.querySelectorAll('.month-tab:not(.add-month)').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const month = tab.getAttribute('data-month');
+                    switchMonth(month);
+                });
+            });
+            
+            // グラフタブのイベントリスナーを設定
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    const chartType = tab.getAttribute('data-chart');
+                    updateChart(chartType);
+                });
+            });
+            
+            renderApplicants();
+            updateStats();
+            initCharts();
+        });
+        
+        // グラフ初期化
+        let applicantsChart = null;
+        
+        function initCharts() {
+            const ctx = document.getElementById('applicantsChart').getContext('2d');
+            
+            applicantsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['3月', '4月', '5月', '6月', '7月', '8月'],
+                    datasets: [
+                        {
+                            label: '応募者数',
+                            data: [0, 0, 12, 0, 0, 0],
+                            backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '採用数',
+                            data: [0, 0, 6, 0, 0, 0],
+                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '人数'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '月'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '月別応募者・採用者数',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // グラフを更新
+        function updateChart(chartType) {
+            if (chartType === 'applicants') {
+                // 応募者集計グラフ
+                applicantsChart.data.datasets = [
+                    {
+                        label: '応募者数',
+                        data: [0, 0, 12, 0, 0, 0],
+                        backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '採用数',
+                        data: [0, 0, 6, 0, 0, 0],
+                        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1
+                    }
+                ];
+                applicantsChart.options.plugins.title.text = '月別応募者・採用者数';
+                
+            } else if (chartType === 'source') {
+                // 応募経路分析グラフ
+                applicantsChart.data.datasets = [
+                    {
+                        label: 'リジョブ',
+                        data: [0, 0, 3, 0, 0, 0],
+                        backgroundColor: 'rgba(241, 196, 15, 0.5)',
+                        borderColor: 'rgba(241, 196, 15, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'ジョブメドレー',
+                        data: [0, 0, 3, 0, 0, 0],
+                        backgroundColor: 'rgba(230, 126, 34, 0.5)',
+                        borderColor: 'rgba(230, 126, 34, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'バイトルPRO',
+                        data: [0, 0, 2, 0, 0, 0],
+                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '自社・紹介',
+                        data: [0, 0, 3, 0, 0, 0],
+                        backgroundColor: 'rgba(155, 89, 182, 0.5)',
+                        borderColor: 'rgba(155, 89, 182, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'その他',
+                        data: [0, 0, 1, 0, 0, 0],
+                        backgroundColor: 'rgba(149, 165, 166, 0.5)',
+                        borderColor: 'rgba(149, 165, 166, 1)',
+                        borderWidth: 1
+                    }
+                ];
+                applicantsChart.options.plugins.title.text = '応募経路別応募者数';
+                
+            } else if (chartType === 'cost') {
+                // コスト分析グラフ
+                applicantsChart.data.datasets = [
+                    {
+                        label: '採用コスト合計',
+                        data: [0, 0, 660000, 0, 0, 0],
+                        backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1,
+                        type: 'bar',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '採用単価',
+                        data: [0, 0, 110000, 0, 0, 0],
+                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 2,
+                        type: 'line',
+                        yAxisID: 'y1'
+                    }
+                ];
+                applicantsChart.options.scales = {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '採用コスト合計'
+                        },
+                        position: 'left'
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '採用単価'
+                        },
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '月'
+                        }
+                    }
+                };
+                applicantsChart.options.plugins.title.text = '月別採用コスト分析';
+            }
+            
+            applicantsChart.update();
+        }
+
+    </script>
+</body>
+</html>
