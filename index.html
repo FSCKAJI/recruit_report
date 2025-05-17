@@ -3,316 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>応募者管理ダッシュボード</title>
-    <!-- Chart.js CDNを読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <title>美容師採用管理ダッシュボード</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>応募者管理ダッシュボード</h1>
+        <h1>美容師採用管理ダッシュボード</h1>
         
-        <!-- 月選択タブ -->
-        <div class="month-tabs">
-            <div class="month-tab active" data-month="2025-05">2025年5月</div>
-            <div class="month-tab" data-month="2025-04">2025年4月</div>
-            <div class="month-tab" data-month="2025-03">2025年3月</div>
-            <div class="month-tab add-month" onclick="showAddMonthModal()">+ 月を追加</div>
+        <!-- タブメニュー -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="current">2025年5月</button>
+            <button class="tab-btn" data-tab="archive">過去データ</button>
+            <button class="tab-btn" data-tab="statistics">統計・分析</button>
         </div>
         
-        <!-- 統計カード -->
-        <div class="dashboard-header">
-            <div class="stat-card">
-                <div class="stat-value" id="totalApplicants">12</div>
-                <div class="stat-label">応募者総数</div>
+        <!-- 現在月（2025年5月）のデータ -->
+        <div class="tab-content active" id="current">
+            <div class="dashboard-header">
+                <h2>2025年5月 採用管理</h2>
+                <div class="actions">
+                    <button id="add-application-btn" class="action-btn">新規応募追加</button>
+                    <button id="export-current-btn" class="action-btn">データ出力</button>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value success" id="hiredCount">6</div>
-                <div class="stat-label">採用数</div>
+            
+            <!-- 採用統計カード -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-applications">0</div>
+                    <div class="stat-label">応募総数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="hired-count">0</div>
+                    <div class="stat-label">採用数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="hire-rate">0%</div>
+                    <div class="stat-label">採用率</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-cost">¥0</div>
+                    <div class="stat-label">採用コスト合計</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="cost-per-hire">¥0</div>
+                    <div class="stat-label">採用単価</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value warning" id="pendingCount">1</div>
-                <div class="stat-label">選考中</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value danger" id="rejectedCount">3</div>
-                <div class="stat-label">不採用</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalCost">¥1,811,000</div>
-                <div class="stat-label">採用コスト合計</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="costPerHire">¥220,000</div>
-                <div class="stat-label">採用単価</div>
+            
+            <!-- 応募者データテーブル -->
+            <div class="data-table-container">
+                <table id="applications-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>応募日</th>
+                            <th>店舗名</th>
+                            <th>氏名</th>
+                            <th>性別</th>
+                            <th>年齢</th>
+                            <th>職種</th>
+                            <th>雇用形態</th>
+                            <th>応募経路</th>
+                            <th>採用成果報酬</th>
+                            <th>面接日</th>
+                            <th>内定日</th>
+                            <th>合否</th>
+                            <th>入社日</th>
+                            <th>備考</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- JavaScriptでデータが挿入される -->
+                    </tbody>
+                </table>
             </div>
         </div>
         
-        <!-- コントロール -->
-        <div class="controls">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="名前、店舗、職種などで検索...">
+        <!-- 過去データタブ -->
+        <div class="tab-content" id="archive">
+            <div class="dashboard-header">
+                <h2>過去データ閲覧</h2>
+                <div class="actions">
+                    <div class="select-wrapper">
+                        <select id="archive-month-selector">
+                            <option value="">-- 月を選択 --</option>
+                            <!-- JavaScriptで月のオプションが挿入される -->
+                        </select>
+                    </div>
+                    <button id="add-archive-month-btn" class="action-btn">新規月データ追加</button>
+                </div>
             </div>
-            <div class="filter-group">
-                <span class="filter-label">ステータス:</span>
-                <button class="filter-btn active" data-filter="all">すべて</button>
-                <button class="filter-btn" data-filter="採用">採用</button>
-                <button class="filter-btn" data-filter="選考中">選考中</button>
-                <button class="filter-btn" data-filter="不採用">不採用</button>
-                <button class="filter-btn" data-filter="辞退">辞退</button>
+            
+            <div id="archive-content">
+                <!-- 選択された月のデータがここに表示される -->
+                <p class="placeholder-text">月を選択してデータを表示</p>
             </div>
-            <div class="filter-group">
-                <span class="filter-label">店舗:</span>
-                <select class="store-filter-select" id="storeFilter">
-                    <option value="all">すべての店舗</option>
-                    <!-- 店舗オプションが動的に追加されます -->
-                </select>
-            </div>
-            <div class="sort-group">
-                <span class="filter-label">並べ替え:</span>
-                <button class="filter-btn" id="sortAsc" onclick="sortApplicants('asc')">古い順</button>
-                <button class="filter-btn active" id="sortDesc" onclick="sortApplicants('desc')">新しい順</button>
-            </div>
-            <button class="add-applicant-btn" onclick="showAddModal()">
-                <span>+</span> 応募者を追加
-            </button>
         </div>
         
-        <!-- グラフ表示エリア -->
-        <div class="chart-container">
-            <div class="chart-tabs">
-                <button class="chart-tab active" data-chart="applicants">応募者集計</button>
-                <button class="chart-tab" data-chart="source">応募経路分析</button>
-                <button class="chart-tab" data-chart="cost">コスト分析</button>
-                <button class="chart-tab" data-chart="stores">店舗別分析</button>
+        <!-- 統計・分析タブ -->
+        <div class="tab-content" id="statistics">
+            <div class="dashboard-header">
+                <h2>統計・分析</h2>
+                <div class="actions">
+                    <div class="select-wrapper">
+                        <select id="stats-year-selector">
+                            <option value="2025">2025年</option>
+                            <option value="2024">2024年</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <div class="chart-content">
-                <div class="chart-placeholder" id="chart">
-                    <canvas id="applicantsChart" width="400" height="200"></canvas>
+            
+            <!-- グラフコンテナ -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>月別応募数と採用数</h3>
+                    <div class="chart" id="applications-chart"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>応募経路別採用数</h3>
+                    <div class="chart" id="source-chart"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>店舗別採用数</h3>
+                    <div class="chart" id="store-chart"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>月別採用コスト</h3>
+                    <div class="chart" id="cost-chart"></div>
                 </div>
             </div>
         </div>
-        
-        <!-- 応募者テーブル -->
-        <div class="applicants-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>応募日</th>
-                        <th>店舗名</th>
-                        <th>氏名</th>
-                        <th>年齢/性別</th>
-                        <th>職種</th>
-                        <th>雇用形態</th>
-                        <th>応募経路</th>
-                        <th>成果報酬</th>
-                        <th>面接日</th>
-                        <th>ステータス</th>
-                        <th>入社日</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="applicantsTableBody">
-                    <!-- ここにデータが動的に入ります -->
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="pagination" id="pagination">
-            <!-- ページネーションが動的に入ります -->
+    </div>
+    
+    <!-- 新規応募モーダル -->
+    <div id="application-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title">新規応募登録</h2>
+            <form id="application-form">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label for="apply-date">応募日</label>
+                    <input type="date" id="apply-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="store">店舗名</label>
+                    <select id="store" required>
+                        <option value="">-- 選択してください --</option>
+                        <!-- JavaScriptで店舗リストが挿入される -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="name">氏名</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="form-group">
+                    <label>性別</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="gender" value="男性" required>
+                            男性
+                        </label>
+                        <label>
+                            <input type="radio" name="gender" value="女性">
+                            女性
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="age">年齢</label>
+                    <input type="number" id="age" min="16" max="100">
+                </div>
+                <div class="form-group">
+                    <label for="position">職種</label>
+                    <select id="position">
+                        <option value="">-- 選択してください --</option>
+                        <option value="スタイリスト">スタイリスト</option>
+                        <option value="アシスタント">アシスタント</option>
+                        <option value="受付">受付</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="employment-type">雇用形態</label>
+                    <select id="employment-type">
+                        <option value="">-- 選択してください --</option>
+                        <option value="正社員">正社員</option>
+                        <option value="パート・アルバイト">パート・アルバイト</option>
+                        <option value="業務委託">業務委託</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="source">応募経路</label>
+                    <select id="source" required>
+                        <option value="">-- 選択してください --</option>
+                        <!-- JavaScriptで応募経路リストが挿入される -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fee">採用成果報酬</label>
+                    <input type="text" id="fee" placeholder="例: 220,000">
+                </div>
+                <div class="form-group">
+                    <label for="interview-date">面接日</label>
+                    <input type="date" id="interview-date">
+                </div>
+                <div class="form-group">
+                    <label for="offer-date">内定日</label>
+                    <input type="date" id="offer-date">
+                </div>
+                <div class="form-group">
+                    <label for="result">合否</label>
+                    <select id="result">
+                        <option value="">-- 選択してください --</option>
+                        <option value="選考中">選考中</option>
+                        <option value="採用">採用</option>
+                        <option value="不採用">不採用</option>
+                        <option value="辞退">辞退</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="start-date">入社日</label>
+                    <input type="date" id="start-date">
+                </div>
+                <div class="form-group">
+                    <label for="notes">備考</label>
+                    <textarea id="notes"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" id="save-application" class="primary-btn">保存</button>
+                    <button type="button" id="cancel-application" class="secondary-btn">キャンセル</button>
+                </div>
+            </form>
         </div>
     </div>
     
-    <!-- 応募者追加/編集モーダル -->
-    <div class="modal" id="applicantModal">
+    <!-- 新規月データ追加モーダル -->
+    <div id="month-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle">応募者を追加</h2>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
-            </div>
-            
-            <!-- 店舗追加ボタン -->
-            <button class="manage-stores-btn" onclick="showManageStoresModal()">
-                <span>+</span> 店舗を追加・管理
-            </button>
-            
-            <!-- クイック入力ボタン -->
-            <div id="quickInputButtons" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
-                <div style="width: 100%; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">よく使う店舗:</div>
-                <button class="filter-btn" onclick="setStore('北島')">北島</button>
-                <button class="filter-btn" onclick="setStore('東原')">東原</button>
-                <button class="filter-btn" onclick="setStore('富久')">富久</button>
-                <button class="filter-btn" onclick="setStore('宇多津')">宇多津</button>
-                <button class="filter-btn" onclick="setStore('国分')">国分</button>
-                
-                <div style="width: 100%; margin: 10px 0 5px; font-weight: 600; color: #2c3e50;">よく使う応募経路:</div>
-                <button class="filter-btn" onclick="setSource('リジョブ', '¥231,000')">リジョブ</button>
-                <button class="filter-btn" onclick="setSource('ジョブメドレー', '¥220,000')">ジョブメドレー</button>
-                <button class="filter-btn" onclick="setSource('バイトルPRO', '¥150,000')">バイトルPRO</button>
-                <button class="filter-btn" onclick="setSource('自社 （ジェイシティ）', '0円')">自社</button>
-                <button class="filter-btn" onclick="setSource('紹介', '0円')">紹介</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">応募日</label>
-                <input type="date" class="form-input" id="applicationDate">
-            </div>
-            <div class="form-group">
-                <label class="form-label">店舗名</label>
-                <select class="form-select" id="storeName">
-                    <option value="">店舗を選択してください</option>
-                    <!-- 店舗オプションが動的に追加されます -->
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">氏名</label>
-                <input type="text" class="form-input" id="applicantName">
-            </div>
-            <div class="form-group">
-                <label class="form-label">性別</label>
-                <select class="form-select" id="gender">
-                    <option value="男性">男性</option>
-                    <option value="女性">女性</option>
-                    <option value="その他">その他</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">年齢</label>
-                <input type="number" class="form-input" id="age">
-            </div>
-            <div class="form-group">
-                <label class="form-label">職種</label>
-                <input type="text" class="form-input" id="jobTitle" value="スタイリスト">
-            </div>
-            <div class="form-group">
-                <label class="form-label">雇用形態</label>
-                <select class="form-select" id="employmentType">
-                    <option value="正社員">正社員</option>
-                    <option value="パート・アルバイト">パート・アルバイト</option>
-                    <option value="契約社員">契約社員</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">応募経路</label>
-                <select class="form-select" id="applicationSource">
-                    <option value="リジョブ">リジョブ</option>
-                    <option value="ジョブメドレー">ジョブメドレー</option>
-                    <option value="バイトルPRO">バイトルPRO</option>
-                    <option value="ビューティーミライ">ビューティーミライ</option>
-                    <option value="自社 （ジェイシティ）">自社 （ジェイシティ）</option>
-                    <option value="紹介">紹介</option>
-                    <option value="その他">その他</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">成果報酬</label>
-                <input type="text" class="form-input" id="referralFee" placeholder="例: ¥220,000">
-            </div>
-            <div class="form-group">
-                <label class="form-label">面接日</label>
-                <input type="date" class="form-input" id="interviewDate">
-            </div>
-            <div class="form-group">
-                <label class="form-label">ステータス</label>
-                <select class="form-select" id="status">
-                    <option value="選考中">選考中</option>
-                    <option value="採用">採用</option>
-                    <option value="不採用">不採用</option>
-                    <option value="辞退">辞退</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">入社日</label>
-                <input type="date" class="form-input" id="startDate">
-            </div>
-            <div class="form-group">
-                <label class="form-label">備考</label>
-                <textarea class="form-input" id="notes" rows="3"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeModal()">キャンセル</button>
-                <button class="modal-btn save" onclick="saveApplicant()">保存</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 月追加モーダル -->
-    <div class="modal" id="addMonthModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">データ入力月を追加</h2>
-                <button class="close-modal" onclick="closeAddMonthModal()">&times;</button>
-            </div>
-            <div class="form-group">
-                <label class="form-label">年月を選択</label>
-                <input type="month" class="form-input" id="newMonthInput">
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeAddMonthModal()">キャンセル</button>
-                <button class="modal-btn save" onclick="addNewMonth()">追加</button>
-            </div>
+            <span class="close-modal">&times;</span>
+            <h2>新規月データ追加</h2>
+            <form id="month-form">
+                <div class="form-group">
+                    <label for="new-month">年月</label>
+                    <input type="month" id="new-month" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="primary-btn">作成</button>
+                    <button type="button" class="secondary-btn cancel-btn">キャンセル</button>
+                </div>
+            </form>
         </div>
     </div>
     
     <!-- 店舗管理モーダル -->
-    <div class="modal" id="manageStoresModal">
+    <div id="store-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">店舗の追加・管理</h2>
-                <button class="close-modal" onclick="closeManageStoresModal()">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">新しい店舗名</label>
-                <input type="text" class="form-input" id="newStoreName" placeholder="例: 新宿店">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">店舗住所</label>
-                <input type="text" class="form-input" id="newStoreAddress" placeholder="例: 東京都新宿区新宿3-1-1">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">地域</label>
-                <select class="form-select" id="newStoreRegion">
-                    <option value="広島">広島</option>
-                    <option value="岡山">岡山</option>
-                    <option value="兵庫">兵庫</option>
-                    <option value="大阪">大阪</option>
-                    <option value="京都">京都</option>
-                    <option value="愛媛">愛媛</option>
-                    <option value="香川">香川</option>
-                    <option value="徳島">徳島</option>
-                    <option value="山口">山口</option>
-                    <option value="福岡・佐賀">福岡・佐賀</option>
-                    <option value="その他">その他</option>
-                </select>
-            </div>
-            
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeManageStoresModal()">キャンセル</button>
-                <button class="modal-btn save" onclick="addNewStore()">店舗を追加</button>
-            </div>
-            
-            <hr style="margin: 20px 0; border-top: 1px dashed #e0e0e0;">
-            
-            <h3 style="margin-bottom: 15px;">登録店舗一覧</h3>
-            <div style="max-height: 300px; overflow-y: auto;" id="storesListContainer">
-                <!-- 店舗リストが動的に入ります -->
+            <span class="close-modal">&times;</span>
+            <h2>店舗管理</h2>
+            <div class="store-management">
+                <div class="store-list-container">
+                    <h3>登録店舗一覧</h3>
+                    <div id="store-list">
+                        <!-- JavaScriptで店舗リストが挿入される -->
+                    </div>
+                </div>
+                <div class="add-store-form">
+                    <h3>新規店舗追加</h3>
+                    <form id="add-store-form">
+                        <div class="form-group">
+                            <label for="new-store-name">店舗名</label>
+                            <input type="text" id="new-store-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-store-address">住所</label>
+                            <input type="text" id="new-store-address" required>
+                        </div>
+                        <button type="submit" class="primary-btn">追加</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- JavaScript ファイルを読み込み -->
+    <!-- 応募経路管理モーダル -->
+    <div id="source-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>応募経路管理</h2>
+            <div class="source-management">
+                <div class="source-list-container">
+                    <h3>登録応募経路一覧</h3>
+                    <div id="source-list">
+                        <!-- JavaScriptで応募経路リストが挿入される -->
+                    </div>
+                </div>
+                <div class="add-source-form">
+                    <h3>新規応募経路追加</h3>
+                    <form id="add-source-form">
+                        <div class="form-group">
+                            <label for="new-source-name">応募経路名</label>
+                            <input type="text" id="new-source-name" required>
+                        </div>
+                        <button type="submit" class="primary-btn">追加</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScriptファイル -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/data.js"></script>
     <script src="js/stores.js"></script>
-    <script src="js/applicants.js"></script>
-    <script src="js/filters.js"></script>
-    <script src="js/modals.js"></script>
+    <script src="js/sources.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/form.js"></script>
+    <script src="js/table.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/charts.js"></script>
-    <script src="js/store-management.js"></script>
-    <script src="js/month-management.js"></script>
-    <script src="js/init.js"></script>
+    <script src="js/archive.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
