@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美容師 応募者管理 BIツール</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>データを読み込み中...</p>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>美容師 応募者管理 BIツール</h1>
+            <div class="controls">
+                <label for="yearSelector">表示年:</label>
+                <select id="yearSelector">
+                    <option>読み込み中...</option>
+                </select>
+                <label for="monthSelector">表示月:</label>
+                <select id="monthSelector">
+                    <option value="all">通年</option>
+                    </select>
+                <button id="refreshBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+                    </svg>
+                    データ更新
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <section class="summary-section">
+                <h2><span id="currentYearDisplay">----</span>年 サマリー</h2>
+                <div class="stats-grid" id="statsGrid">
+                    </div>
+            </section>
+
+            <section class="chart-section">
+                <div class="chart-wrapper">
+                    <h3>月別 応募者数・採用者数</h3>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                 <div class="chart-wrapper">
+                    <h3>応募経路別</h3>
+                    <canvas id="routeChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>エリア別</h3>
+                    <canvas id="areaChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>応募数・採用数 前年/前前年比較</h3>
+                    <canvas id="comparisonYearlyChart"></canvas>
+                </div>
+                </section>
+
+            <section class="table-section">
+                <h2>応募者一覧 (<span id="tableRowCount">0</span>件)</h2>
+                <div class="filters">
+                   <select id="filterStore"><option value="">全店舗</option></select>
+                   <select id="filterStatus"><option value="">全合否</option></select>
+                   <input type="text" id="filterName" placeholder="氏名で検索...">
+                </div>
+                <div class="table-container">
+                    <table id="applicantTable">
+                        <thead>
+                            <tr>
+                                </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="10">データを読み込んでいます...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+             <section class="comparison-section">
+                <h2>前年対比表 (応募者数)</h2>
+                <div class="table-container">
+                    <table id="comparisonTable">
+                       <thead><tr><th>月</th><th>今年</th><th>前年</th><th>増減</th><th>増減率</th></tr></thead>
+                       <tbody><tr><td colspan="5">データを読み込んでいます...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>最終更新: <span id="lastUpdated">----/--/-- --:--</span></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
